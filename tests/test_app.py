@@ -8,7 +8,7 @@ from http.server import ThreadingHTTPServer
 from pathlib import Path
 from unittest.mock import patch
 from icalendar import Calendar
-from app import handler, parse_games, make_calendar, refresh
+from app import handler, parse_games, make_calendar, refresh, subscription_url
 
 
 def fixture(day='19.07.2026', status=''):
@@ -69,6 +69,20 @@ class CalendarTests(unittest.TestCase):
 
 
 class AccessTests(unittest.TestCase):
+    def test_subscription_url_with_path_prefix(self):
+        self.assertEqual(
+            subscription_url('https://example.com/blafoo/', 'a' * 43),
+            'https://example.com/blafoo/calendar.ics?token=' + 'a' * 43,
+        )
+        self.assertEqual(
+            subscription_url('https://example.com', 'a' * 43),
+            'https://example.com/calendar.ics?token=' + 'a' * 43,
+        )
+        for base in ('http://example.com', 'https://example.com/?x=1',
+                     'https://user@example.com', 'https://example.com/#fragment'):
+            with self.assertRaises(ValueError):
+                subscription_url(base, 'a' * 43)
+
     def test_feed_requires_token_and_other_routes_are_unavailable(self):
         token = 'a' * 43
         with tempfile.TemporaryDirectory() as directory:
@@ -77,7 +91,8 @@ class AccessTests(unittest.TestCase):
                 'team': 'ABC', 'ics': 'BEGIN:VCALENDAR\r\nEND:VCALENDAR\r\n',
                 'updated': datetime.now(timezone.utc).isoformat(), 'events': {},
             }))
-            config = {'path': path, 'team': 'ABC', 'interval': 21600, 'token': token}
+            config = {'path': path, 'team': 'ABC', 'interval': 21600,
+                      'token': token, 'calendar_path': '/blafoo/calendar.ics'}
             server = ThreadingHTTPServer(('127.0.0.1', 0), handler(config))
             thread = threading.Thread(target=server.serve_forever)
             thread.start()
@@ -95,6 +110,8 @@ class AccessTests(unittest.TestCase):
                     self.assertEqual(request('/calendar.ics' + query)[0], 404)
                 self.assertEqual(request('/calendar.ics?token=' + token)[0], 200)
                 self.assertEqual(request('/calendar.ics?token=' + token, 'HEAD')[0], 200)
+                self.assertEqual(request('/blafoo/calendar.ics?token=' + token)[0], 200)
+                self.assertEqual(request('/blafoo/calendar.ics')[0], 404)
                 for route in ('/status', '/healthz'):
                     self.assertEqual(request(route + '?token=' + token)[0], 404)
                     self.assertEqual(request(route + '?token=' + token, 'HEAD')[0], 404)

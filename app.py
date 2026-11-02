@@ -151,6 +151,14 @@ def worker(config):
         threading.Event().wait(config['interval'])
 
 
+def subscription_url(base_url, token):
+    base = urlsplit(base_url)
+    if (base.scheme != 'https' or not base.hostname or base.username or base.password
+            or base.query or base.fragment or any(char.isspace() for char in base_url)):
+        raise ValueError('CALENDAR_BASE_URL must be an HTTPS URL without credentials, query or fragment')
+    return base_url.rstrip('/') + '/calendar.ics?token=' + token
+
+
 def handler(config):
     class Handler(BaseHTTPRequestHandler):
         def log_message(self, format, *args):
@@ -163,7 +171,7 @@ def handler(config):
         def do_GET(self):
             url = urlsplit(self.path)
             route = url.path
-            if route != '/calendar.ics':
+            if route not in ('/calendar.ics', config.get('calendar_path', '/calendar.ics')):
                 self.send_error(404)
                 return
             tokens = parse_qs(url.query, keep_blank_values=True).get('token', [])
@@ -205,9 +213,15 @@ def main():
               'interval': int(os.getenv('REFRESH_SECONDS', '21600')),
               'duration': int(os.getenv('MATCH_DURATION_MINUTES', '105')),
               'path': Path(os.getenv('DATA_DIR', '/data')) / 'calendar.json'}
+    base_url = os.getenv('CALENDAR_BASE_URL')
+    if base_url:
+        url = subscription_url(base_url, token)
+        config['calendar_path'] = urlsplit(base_url).path.rstrip('/') + '/calendar.ics'
     if config['interval'] < 300 or config['duration'] < 1:
         raise ValueError('Refresh interval must be at least 300 seconds; match duration must be positive')
     config['path'].parent.mkdir(parents=True, exist_ok=True)
+    if base_url:
+        LOG.info('Subscription URL: %s', url)
     threading.Thread(target=worker, args=(config,), daemon=True).start()
     ThreadingHTTPServer(('0.0.0.0', 8080), handler(config)).serve_forever()
 

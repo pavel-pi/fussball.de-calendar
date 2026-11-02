@@ -5,6 +5,7 @@ services:
     environment:
       TEAM_ID: ${TEAM_ID:?Set TEAM_ID in .env}
       CALENDAR_TOKEN: ${CALENDAR_TOKEN:?Set CALENDAR_TOKEN in .env}
+      CALENDAR_BASE_URL: ${CALENDAR_BASE_URL:-}
       CALENDAR_NAME: ${CALENDAR_NAME:-Football Schedule}
       START_DATE: ${START_DATE:-2026-07-01}
       REFRESH_SECONDS: ${REFRESH_SECONDS:-21600}

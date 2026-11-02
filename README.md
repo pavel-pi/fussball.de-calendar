@@ -4,7 +4,7 @@ Publishes one fussball.de team's match schedule as a token-protected iCalendar s
 
 ## Deploy
 
-Copy `compose.yaml` and `.env.example` to the Docker host, then run `cp .env.example .env`. Set `TEAM_ID` (from the fussball.de team URL) and `CALENDAR_IMAGE`. Generate `CALENDAR_TOKEN` with:
+Copy `compose.yaml` and `.env.example` to the Docker host, then run `cp .env.example .env`. Set `TEAM_ID` (from the fussball.de team URL), `CALENDAR_IMAGE`, and `CALENDAR_BASE_URL` (your public HTTPS URL, optionally including a path prefix). Generate `CALENDAR_TOKEN` with:
 
    ```sh
    python3 -c "import secrets; print(secrets.token_urlsafe(32))"
@@ -17,8 +17,6 @@ Add the generated token to `.env` and start the service:
    docker compose pull
    docker compose up -d
    ```
-
-Subscribe at `https://YOUR-DOMAIN/calendar.ics?token=YOUR-TOKEN`.
 
 ## Development
 
