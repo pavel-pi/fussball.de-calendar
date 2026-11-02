@@ -1,0 +1,17 @@
+services:
+  fussballde:
+    image: ${CALENDAR_IMAGE:?Set CALENDAR_IMAGE in .env}
+    restart: unless-stopped
+    environment:
+      TEAM_ID: ${TEAM_ID:?Set TEAM_ID in .env}
+      CALENDAR_TOKEN: ${CALENDAR_TOKEN:?Set CALENDAR_TOKEN in .env}
+      CALENDAR_NAME: ${CALENDAR_NAME:-Football Schedule}
+      START_DATE: ${START_DATE:-2026-07-01}
+      REFRESH_SECONDS: ${REFRESH_SECONDS:-21600}
+      MATCH_DURATION_MINUTES: ${MATCH_DURATION_MINUTES:-105}
+    volumes:
+      - calendar-data:/data
+    ports:
+      - "127.0.0.1:8080:8080"
+volumes:
+  calendar-data:
